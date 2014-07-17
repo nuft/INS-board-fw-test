@@ -1,0 +1,80 @@
+{% extends "Makefile.arm.jinja" %}
+
+{% block variables %}
+PROJNAME = ins-board
+Q = @
+COLOR		= \033[1;31m
+COLOR_CLEAR = \033[0m
+PRINT = @printf "$(COLOR)%s$(COLOR_CLEAR)\n"
+{% endblock %}
+
+{% block cflags %}
+INCDIR   += -I./CMSIS/include
+INCDIR   += -I./libopencm3/include
+
+# C compiler flags
+CFLAGS = -Wall -Werror -Os
+CFLAGS += -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CFLAGS += -fno-common -ffunction-sections -fdata-sections -fomit-frame-pointer
+CFLAGS += -MD
+CFLAGS += $(INCDIR)
+{% endblock %}
+
+{% block ldflags %}
+# Linker flags
+LDFLAGS = -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
+LDFLAGS += -Wl,--gc-sections -nostartfiles
+LDFLAGS += -Tlinkerscript.ld
+LDFLAGS += -lc -lnosys
+LDFLAGS	+= -L./libopencm3/lib
+LDFLAGS	+= -L./CMSIS/lib/
+LDFLAGS	+= -lopencm3_stm32f4
+LDFLAGS	+= -larm_cortexM4lf_math
+{% endblock %}
+
+{% block linking %}
+all: $(PROJNAME).elf $(PROJNAME).bin $(PROJNAME).hex $(PROJNAME).lst $(PROJNAME).size.txt
+	$(Q) $(SZ) $(PROJNAME).elf
+
+$(PROJNAME).elf: $(OBJS)
+	$(PRINT) "> linking"
+	$(Q) $(LD) -o $(PROJNAME).elf $(OBJS) $(LDFLAGS)
+{% endblock %}
+
+{% block c_compile %}
+%.o: %.c Makefile
+	$(PRINT) "> compiling $<"
+	$(Q) $(CC) -c $(CFLAGS) ${<} -o ${@}
+
+
+-include $(OBJECTS:.o=.d)
+{% endblock %}
+
+{% block clean %}
+clean:
+	rm -f $(OBJS)
+	rm -f $(OBJS:.o=.d)
+	rm -f $(PROJNAME).elf $(PROJNAME).size.txt $(PROJNAME).lst
+{% endblock %}
+
+{% block additional_rules %}
+# binary file
+$(PROJNAME).bin: $(PROJNAME).elf
+	$(Q) $(OC) -O binary -j .text -j .rodata -j .data $(PROJNAME).elf $(PROJNAME).bin
+
+$(PROJNAME).hex: $(PROJNAME).elf
+	$(Q) $(OC) -O ihex $(PROJNAME).elf $(PROJNAME).hex
+
+# assembly listing
+$(PROJNAME).lst: $(PROJNAME).elf
+	$(PRINT) "> generating assembly listing"
+	$(Q) $(OD) -D -h $(PROJNAME).elf > $(PROJNAME).lst
+
+# space usage
+$(PROJNAME).size.txt: $(PROJNAME).elf
+	$(PRINT) "> calculating space usage"
+	$(Q) $(SZ) $(PROJNAME).elf > $(PROJNAME).size.txt
+	$(Q) $(NM) --numeric-sort --print-size -S $(PROJNAME).elf >> $(PROJNAME).size.txt
+
+rebuild: clean all
+{% endblock %}
