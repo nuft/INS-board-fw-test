@@ -51,7 +51,7 @@ void mpu6000_init_using_spi(mpu60X0_t *dev, uint32_t spi_dev, uint32_t cs_port, 
     dev->cs_gpio_pin = cs_pin;
 }
 
-void mpu6050_setup(mpu60X0_t *dev)
+void mpu60X0_setup(mpu60X0_t *dev)
 {
     // select gyro x as clock source and disable sleep
     mpu60X0_reg_write(dev, MPU6050_RA_PWR_MGMT_1, MPU6050_CLOCK_PLL_XGYRO);
@@ -63,7 +63,7 @@ void mpu6050_setup(mpu60X0_t *dev)
     mpu60X0_reg_write(dev, MPU6050_RA_CONFIG, MPU6050_DLPF_BW_10);
 }
 
-bool mpu6050_ping(mpu60X0_t *dev)
+bool mpu60X0_ping(mpu60X0_t *dev)
 {
     if (mpu60X0_reg_read(dev, MPU6050_RA_WHO_AM_I) == 0x68) {
         return true;
