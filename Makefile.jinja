@@ -19,6 +19,7 @@ CFLAGS += -fno-common -ffunction-sections -fdata-sections -fomit-frame-pointer
 CFLAGS += -MD
 CFLAGS += $(INCDIR)
 CFLAGS += -DSTM32F4
+CFLAGS += -g
 {% endblock %}
 
 {% block ldflags %}
