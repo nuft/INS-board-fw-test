@@ -16,12 +16,10 @@ mpu60X0_t mpu;
 void mpu_spi_init(void)
 {
     // SPI1 SCK (PA5), MISO (PA6), MOSI (PA7) GPIO setup
+    gpio_set_af(GPIOA, GPIO_AF5, GPIO5 | GPIO6 | GPIO7);
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO5 | GPIO6 | GPIO7);
     // SCK and MOSI as pushpull
     gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO5 | GPIO7);
-    // MISO as opendrain
-    gpio_set_output_options(GPIOA, GPIO_OTYPE_OD, GPIO_OSPEED_100MHZ, GPIO6);
-    gpio_set_af(GPIOA, GPIO_AF5, GPIO5 | GPIO6 | GPIO7);
 
     // MPU CS (PC4) GPIO setup
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO4);
@@ -74,6 +72,8 @@ int main(void)
      // VCC_A enable
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO14);
     gpio_set(GPIOC, GPIO14);
+
+    delay(1000000);
 
     mpu_spi_init();
 
