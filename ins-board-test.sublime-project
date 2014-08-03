@@ -1,0 +1,19 @@
+{
+	"folders":
+	[
+		{
+			"follow_symlinks": true,
+			"path": "."
+		}
+	],
+    "SublimeLinter":
+    {
+        "linters": {
+            "clang": {
+                "extra_flags": "-DSTM32F4",
+                "include_dirs":
+                    ["libopencm3/include/"]
+            }
+        }
+    }
+}
