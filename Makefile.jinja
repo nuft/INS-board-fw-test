@@ -18,6 +18,7 @@ CFLAGS += -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp
 CFLAGS += -fno-common -ffunction-sections -fdata-sections -fomit-frame-pointer
 CFLAGS += -MD
 CFLAGS += $(INCDIR)
+CFLAGS += -DSTM32F4
 {% endblock %}
 
 {% block ldflags %}
