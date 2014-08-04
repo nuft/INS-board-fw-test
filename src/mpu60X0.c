@@ -12,7 +12,7 @@ char mpu60X0_reg_read(mpu60X0_t *dev, uint8_t reg)
     char ret = 0;
     if (dev->use_spi) {
         gpio_clear(dev->cs_gpio_port, dev->cs_gpio_pin);
-        spi_xfer(dev->spi_dev, reg);
+        spi_xfer(dev->spi_dev, reg | 0x80);
         ret = spi_xfer(dev->spi_dev, 0);
         gpio_set(dev->cs_gpio_port, dev->cs_gpio_pin);
     }
