@@ -11,6 +11,7 @@ PRINT = @printf "$(COLOR)%s$(COLOR_CLEAR)\n"
 {% block cflags %}
 INCDIR   += -I./CMSIS/include
 INCDIR   += -I./libopencm3/include
+INCDIR   += -I./src
 
 # C compiler flags
 CFLAGS = -Wall -Werror -Os
