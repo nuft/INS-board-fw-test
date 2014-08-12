@@ -3,6 +3,7 @@ target.arm:
     - src/mpu60X0.c
     - src/system_stm32f4xx.c
     - src/i2c.c
+    - src/uart.c
 
 templates:
     Makefile.jinja: Makefile

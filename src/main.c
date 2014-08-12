@@ -5,6 +5,7 @@
 #include <libopencm3/stm32/spi.h>
 #include "mpu60X0.h"
 #include "i2c.h"
+#include "uart.h"
 
 void delay(unsigned int n)
 {
@@ -169,9 +170,14 @@ int main(void)
     gpio_set(GPIOB, GPIO15);
 
     // // VCC_IO enable
-    // gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
-    // gpio_set(GPIOB, GPIO5);
+    gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
+    gpio_set(GPIOB, GPIO5);
 
+    uart_conn1_init(38400);
+    uart_conn1_write("boot\n");
+
+
+    delay(10000000);
      // VCC_A enable
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO14);
     gpio_set(GPIOC, GPIO14);
