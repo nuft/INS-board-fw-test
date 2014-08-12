@@ -180,6 +180,7 @@ int main(void)
 
     // init SCL (PB8), SDA (PB9)
     gpio_set_af(GPIOB, GPIO_AF4, GPIO8 | GPIO9);
+    gpio_set_output_options(GPIOB, GPIO_OTYPE_OD, GPIO_OSPEED_50MHZ, GPIO8 | GPIO9);
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO8 | GPIO9);
     i2c_init();
 
