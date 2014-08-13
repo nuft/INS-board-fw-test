@@ -50,7 +50,7 @@ $(PROJNAME).elf: $(OBJS)
 	$(Q) $(CC) -c $(CFLAGS) ${<} -o ${@}
 
 
--include $(OBJECTS:.o=.d)
+-include $(OBJS:.o=.d)
 {% endblock %}
 
 {% block clean %}
