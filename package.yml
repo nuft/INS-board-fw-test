@@ -4,6 +4,7 @@ target.arm:
     - src/system_stm32f4xx.c
     - src/i2c.c
     - src/uart.c
+    - src/can.c
 
 templates:
     Makefile.jinja: Makefile
