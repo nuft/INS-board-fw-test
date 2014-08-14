@@ -36,7 +36,7 @@ void can_test(void)
              false,             // Time triggered communication mode.
              true,              // Automatic bus-off management.
              false,             // Automatic wakeup mode.
-             true,              // No automatic retransmission.
+             false,             // No automatic retransmission.
              false,             // Receive FIFO locked mode.
              true,              // Transmit FIFO priority.
              CAN_BTR_SJW_1TQ,   // Resynchronization time quanta jump width
@@ -49,12 +49,15 @@ void can_test(void)
         ERROR_LED_ON();
     }
 
-    delay(10000000);
+    // All filter configuration must be done with CAN1!
+    CAN_FMR(CAN1) &= ~(int32_t)0x3F00; // assign all filters to CAN2
+    can_filter_id_mask_16bit_init(CAN1, 0, 0, 0, 0, 0, 0, true); // match any id
 
-    uint32_t id = 0x2a;
-    uint8_t data[] = {0xaa, 0x55, 0xaa, 0x55};
+    // CAN has a maximum of 8 chars payload... this can't be a coincidence
+    uint8_t data[] = {'S', 'i', 'e', 'g', 'H', 'e', 'i', 'l'};
+    uint32_t id = 0x00;
     STATUS_LED_ON();
-    if (can_transmit(CAN2, id, false, false, 2, data) != 0) {
+    if (can_transmit(CAN2, id, false, false, sizeof(data), data) != 0) {
         uart_conn1_write("not using mailbox 0, tests will fail\n");
         ERROR_LED_ON();
     }
@@ -74,5 +77,19 @@ void can_test(void)
     if ((CAN_TSR(CAN2) & CAN_TSR_ALST0)) {
         ERROR_LED_ON();
         uart_conn1_write("can arbitration lost\n");
+    }
+    if (CAN_RF0R(CAN2) & CAN_RF0R_FMP0_MASK) {
+        uart_conn1_write("can message received! :)\n");
+        uint32_t id, fmi;
+        bool ext, rtr;
+        uint8_t length;
+        uint8_t data[9];
+        can_receive(CAN2, 0, true, &id, &ext, &rtr, &fmi, &length, data);
+        data[length] = '\0';
+        uart_conn1_write("received: \"");
+        uart_conn1_write((char*)data);
+        uart_conn1_write("\"\n");
+    } else {
+        uart_conn1_write("nothing received :(\n");
     }
 }

@@ -6,6 +6,7 @@
 #include "mpu60X0.h"
 #include "i2c.h"
 #include "uart.h"
+#include "can.h"
 
 void delay(unsigned int n)
 {
@@ -174,7 +175,7 @@ int main(void)
     gpio_set(GPIOB, GPIO5);
 
     uart_conn1_init(38400);
-    uart_conn1_write("boot\n");
+    uart_conn1_write("=== boot ===\n");
 
 
     delay(10000000);
@@ -192,13 +193,13 @@ int main(void)
 
     mpu_spi_init();
 
-    if (mpu60X0_ping(&mpu) && HMC5883L_ping()) {
-        gpio_set(GPIOB, GPIO14);
-        gpio_clear(GPIOA, GPIO10);
-    } else {
-        gpio_set(GPIOA, GPIO10);
-        gpio_clear(GPIOB, GPIO14);
-    }
+    // if (mpu60X0_ping(&mpu) && HMC5883L_ping()) {
+    //     gpio_set(GPIOB, GPIO14);
+    //     gpio_clear(GPIOA, GPIO10);
+    // } else {
+    //     gpio_set(GPIOA, GPIO10);
+    //     gpio_clear(GPIOB, GPIO14);
+    // }
 
     // if (mpu60X0_ping(&mpu)) {
     //     gpio_set(GPIOB, GPIO14);
@@ -207,6 +208,8 @@ int main(void)
     //     gpio_set(GPIOA, GPIO10);
     //     gpio_clear(GPIOB, GPIO14);
     // }
+
+    can_test();
 
     while (1) {
         gpio_toggle(GPIOA, GPIO8);
