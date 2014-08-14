@@ -17,6 +17,8 @@ void can_test(void)
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
     gpio_clear(GPIOC, GPIO5);
 
+    // CAN1 clock must be enabled to use CAN2.
+    rcc_periph_clock_enable(RCC_CAN1);
     rcc_periph_clock_enable(RCC_CAN2);
 
     gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
