@@ -9,4 +9,4 @@
 	url = https://github.com/cvra/uCOS-III.git
 [submodule "platform-abstraction"]
 	path = platform-abstraction
-	url = git@bitbucket.org:mspieler/platform-abstraction.git
+	url = https://github.com/nuft/platform-abstraction.git
