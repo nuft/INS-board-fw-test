@@ -4,7 +4,6 @@
 #define I2C_H
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #define USE_I2C1
 // #define USE_I2C2
@@ -50,7 +49,7 @@ extern i2c_bus_t dev_i2c3;
 #endif
 
 #ifndef I2C1_SPEED
-#define I2C1_SPEED 400000
+#define I2C1_SPEED 40
 #endif
 #ifndef I2C2_SPEED
 #define I2C2_SPEED 400000

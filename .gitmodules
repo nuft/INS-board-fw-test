@@ -4,3 +4,9 @@
 [submodule "packager"]
 	path = packager
 	url = https://github.com/cvra/packager.git
+[submodule "uCOS-III"]
+	path = uCOS-III
+	url = https://github.com/cvra/uCOS-III.git
+[submodule "platform-abstraction"]
+	path = platform-abstraction
+	url = git@bitbucket.org:mspieler/platform-abstraction.git

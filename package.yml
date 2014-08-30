@@ -1,9 +1,15 @@
+depends:
+    - uCOS-III
+    - platform-abstraction
+
 target.arm:
     - src/main.c
+    - src/sensors.c
     - src/mpu60X0.c
-    - src/system_stm32f4xx.c
     - src/i2c.c
     - src/uart.c
+    - src/runtime.c
+    - src/system_stm32f4xx.c
 
 templates:
     Makefile.jinja: Makefile
