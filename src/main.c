@@ -7,6 +7,7 @@
 #include "i2c.h"
 #include "uart.h"
 #include "sensors.h"
+#include "can.h"
 
 #include <os.h>
 #include <platform-abstraction/threading.h>
@@ -107,7 +108,7 @@ int main(void)
     gpio_set(GPIOB, GPIO5);
 
     uart_conn1_init(38400);
-    uart_conn1_write("boot\n");
+    uart_conn1_write("=== boot ===\n");
 
 
     delay(10000000);
@@ -126,8 +127,34 @@ int main(void)
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO8 | GPIO9);
     i2c_init();
 
-    os_run();
+    mpu_spi_init();
 
-    while(1);
+    // if (mpu60X0_ping(&mpu) && HMC5883L_ping()) {
+    //     gpio_set(GPIOB, GPIO14);
+    //     gpio_clear(GPIOA, GPIO10);
+    // } else {
+    //     gpio_set(GPIOA, GPIO10);
+    //     gpio_clear(GPIOB, GPIO14);
+    // }
+
+    // if (mpu60X0_ping(&mpu)) {
+    //     gpio_set(GPIOB, GPIO14);
+    //     gpio_clear(GPIOA, GPIO10);
+    // } else {
+    //     gpio_set(GPIOA, GPIO10);
+    //     gpio_clear(GPIOB, GPIO14);
+    // }
+
+    can_test();
+
+    while (1) {
+        gpio_toggle(GPIOA, GPIO8);
+        delay(1000000);
+    }
+
+    // os_run();
+
+    // while(1);
+
     return 0;
 }

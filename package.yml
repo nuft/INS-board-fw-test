@@ -10,6 +10,7 @@ target.arm:
     - src/uart.c
     - src/runtime.c
     - src/system_stm32f4xx.c
+    - src/can.c
 
 templates:
     Makefile.jinja: Makefile
