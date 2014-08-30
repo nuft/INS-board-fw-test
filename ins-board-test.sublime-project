@@ -12,7 +12,7 @@
             "clang": {
                 "extra_flags": "-DSTM32F4",
                 "include_dirs":
-                    ["libopencm3/include/"]
+                    ["libopencm3/include/", "uCOS-III/Source/"]
             }
         }
     }
