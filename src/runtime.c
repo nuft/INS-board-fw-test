@@ -8,8 +8,7 @@ parts of this code are from http://stm32discovery.nano-age.co.uk/open-source-dev
 #include <sys/unistd.h>
 #include <platform-abstraction/panic.h>
 
-int uart_write(const char *p, int len);
-int uart_read(char *p, int len);
+#include "uart.h"
 
 #undef errno
 extern int errno;
@@ -154,7 +153,7 @@ int _read(int file, char *ptr, int len) {
     int num = 0;
     switch (file) {
     case STDIN_FILENO:
-        num = uart_read(ptr, len);
+        num = 0;
         break;
     default:
         errno = EBADF;
@@ -205,16 +204,18 @@ int _wait(int *status) {
  Returns -1 on error or number of bytes sent
  */
 int _write(int file, char *ptr, int len) {
+    uart_conn1_puts("write:\n");
+    int nb_bytes_sent = -1;
     switch (file) {
-    case STDOUT_FILENO: /*stdout*/
-        uart_write(ptr, len);
+    case STDOUT_FILENO: /* stdout */
+        nb_bytes_sent = uart_conn_write(1, ptr, len);
         break;
     case STDERR_FILENO: /* stderr */
-        uart_write(ptr, len);
+        nb_bytes_sent = uart_conn_write(2, ptr, len);
         break;
     default:
         errno = EBADF;
         return -1;
     }
-    return len;
+    return nb_bytes_sent;
 }

@@ -1,5 +1,6 @@
 
 #include <stddef.h>
+#include <stdio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
@@ -12,15 +13,6 @@
 #include <os.h>
 #include <platform-abstraction/threading.h>
 
-int uart_write(const char *p, int len)
-{
-    return 0;
-}
-
-int uart_read(char *p, int len)
-{
-    return 0;
-}
 
 void delay(unsigned int n)
 {
@@ -82,6 +74,16 @@ void my_thread_main(void *arg)
     }
 }
 
+
+os_thread_t test;
+uint8_t test_stack[1024];
+
+void test_main(void *arg)
+{
+    printf("hello world\n");
+    while (1);
+}
+
 int main(void)
 {
     rcc_clock_setup_hse_3v3(&hse_16mhz_3v3[CLOCK_3V3_168MHZ]);
@@ -108,8 +110,7 @@ int main(void)
     gpio_set(GPIOB, GPIO5);
 
     uart_conn1_init(38400);
-    uart_conn1_write("=== boot ===\n");
-
+    printf("=== boot ===\n");
 
     delay(10000000);
      // VCC_A enable
@@ -120,6 +121,7 @@ int main(void)
     delay(1000000);
 
     os_thread_create(&my_thread, my_thread_main, my_thread_stack, sizeof(my_thread_stack), "my thread", 3, NULL);
+    os_thread_create(&test, test_main, test_stack, sizeof(test_stack), "test", 2, NULL);
 
     // init SCL (PB8), SDA (PB9)
     gpio_set_af(GPIOB, GPIO_AF4, GPIO8 | GPIO9);
@@ -145,10 +147,12 @@ int main(void)
     //     gpio_clear(GPIOB, GPIO14);
     // }
 
-    can_test();
+    // can_test();
+
+    os_run();
 
     while (1) {
-        gpio_toggle(GPIOA, GPIO8);
+        // gpio_toggle(GPIOA, GPIO8);
         delay(1000000);
     }
 

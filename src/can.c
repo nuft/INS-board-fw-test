@@ -11,7 +11,7 @@ void delay(unsigned int n); // in main.c (TODO)
 
 void can_test(void)
 {
-    uart_conn1_write("can test started\n");
+    uart_conn1_puts("can test started\n");
 
     // enable CAN transceiver
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
@@ -45,7 +45,7 @@ void can_test(void)
              2,                 // Prescaler
              true,              // Loopback
              false)) {          // Silent
-        uart_conn1_write("can init failed\n");
+        uart_conn1_puts("can init failed\n");
         ERROR_LED_ON();
     }
 
@@ -58,38 +58,38 @@ void can_test(void)
     uint32_t id = 0x00;
     STATUS_LED_ON();
     if (can_transmit(CAN2, id, false, false, sizeof(data), data) != 0) {
-        uart_conn1_write("not using mailbox 0, tests will fail\n");
+        uart_conn1_puts("not using mailbox 0, tests will fail\n");
         ERROR_LED_ON();
     }
     while((CAN_TSR(CAN2) & CAN_TSR_RQCP0) == 0);
     STATUS_LED_OFF();
 
     if ((CAN_TSR(CAN2) & CAN_TSR_TXOK0)) {
-        uart_conn1_write("can ok\n");
+        uart_conn1_puts("can ok\n");
     } else {
         ERROR_LED_ON();
-        uart_conn1_write("can not ok\n");
+        uart_conn1_puts("can not ok\n");
     }
     if ((CAN_TSR(CAN2) & CAN_TSR_TERR0)) {
         ERROR_LED_ON();
-        uart_conn1_write("can transmit error\n");
+        uart_conn1_puts("can transmit error\n");
     }
     if ((CAN_TSR(CAN2) & CAN_TSR_ALST0)) {
         ERROR_LED_ON();
-        uart_conn1_write("can arbitration lost\n");
+        uart_conn1_puts("can arbitration lost\n");
     }
     if (CAN_RF0R(CAN2) & CAN_RF0R_FMP0_MASK) {
-        uart_conn1_write("can message received! :)\n");
+        uart_conn1_puts("can message received! :)\n");
         uint32_t id, fmi;
         bool ext, rtr;
         uint8_t length;
         uint8_t data[9];
         can_receive(CAN2, 0, true, &id, &ext, &rtr, &fmi, &length, data);
         data[length] = '\0';
-        uart_conn1_write("received: \"");
-        uart_conn1_write((char*)data);
-        uart_conn1_write("\"\n");
+        uart_conn1_puts("received: \"");
+        uart_conn1_puts((char*)data);
+        uart_conn1_puts("\"\n");
     } else {
-        uart_conn1_write("nothing received :(\n");
+        uart_conn1_puts("nothing received :(\n");
     }
 }
