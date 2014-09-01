@@ -14,7 +14,34 @@
  */
 
 
-void uart_conn1_write(const char *str)
+// todo not thread safe!
+uint32_t uart_conn_write(uint32_t conn_nb, const char *buf, size_t len)
+{
+    uint32_t uart;
+    switch (conn_nb) {
+    case 1:
+        uart = USART1;
+        break;
+    case 2:
+        uart = UART4;
+        break;
+    case 3:
+        uart = USART2;
+        break;
+    case 4:
+        uart = USART6;
+        break;
+    default:
+        return -1;
+    }
+    uint32_t  i;
+    for (i = 0; i < len; i++) {
+        usart_send_blocking(uart, buf[i]);
+    }
+    return len;
+}
+
+void uart_conn1_puts(const char *str)
 {
     while (*str != '\0') {
         usart_send_blocking(USART1, *str);
