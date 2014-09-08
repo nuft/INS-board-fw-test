@@ -1,7 +1,7 @@
 
 #include <errno.h>
 #include <string.h>
-
+#include <platform-abstraction/criticalsection.h>
 #include <libopencm3/stm32/usart.h>
 
 
@@ -77,16 +77,28 @@ const dev_file_ops_t dev_fd_tab[] = {
 
 
 
-// TODO thread synchronization
 static int find_unused_filedescr(void)
 {
+    CRITICAL_SECTION_ALLOC();
+    CRITICAL_SECTION_ENTER();
     int i;
     for (i = 3; i < FILE_DESC_TABLE_SIZE; i++) {
         if (fd_list[i].ops == NULL) {
+            fd_list[i].ops = (file_ops_t *)1; // mark file descr. as used
+            CRITICAL_SECTION_EXIT();
             return i;
         }
     }
+    CRITICAL_SECTION_EXIT();
     return -1;
+}
+
+static void delete_filedescr(int fd)
+{
+    CRITICAL_SECTION_ALLOC();
+    CRITICAL_SECTION_ENTER();
+    fd_list[fd].ops = NULL;
+    CRITICAL_SECTION_EXIT();
 }
 
 #define DEV_PATH "/dev/"
@@ -103,7 +115,7 @@ int _open(const char *path, int flags, int mode)
         int i = 0;
         while (strcmp(path + strlen(DEV_PATH), dev_fd_tab[i].devicename) != 0) {
             if (++i == NB_DEV_FD) {
-                return -1; // device doesn't exist
+                goto fail; // device doesn't exist
             }
         }
         void *f = dev_fd_tab[i].ops->open(dev_fd_tab[i].dev, path + strlen(DEV_PATH), flags, mode);
@@ -112,23 +124,28 @@ int _open(const char *path, int flags, int mode)
             fd_list[fd].ops = dev_fd_tab[i].ops;
             return fd;
         } else {
-            return -1; // open failed
+            goto fail; // open failed
         }
 
     // open file on sd card
     } else if (strncmp(path, SD_PATH, strlen(SD_PATH)) == 0) {
-        return -1; // TODO
-
-    } else {
-        return -1;
+        goto fail; // TODO
     }
+
+fail:
+    delete_filedescr(fd);
+    return -1;
 }
 
 int _close(int file) {
     if (file == -1) {
         return -1;
     }
-    return fd_list[file].ops->close(fd_list[file].file);
+    int ret = fd_list[file].ops->close(fd_list[file].file);
+    if (ret == 0) {
+        delete_filedescr(file);
+    }
+    return ret;
 }
 
 int _read(int file, char *ptr, int len) {
