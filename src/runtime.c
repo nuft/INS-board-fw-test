@@ -1,11 +1,5 @@
 
-
-#include <stdbool.h>
 #include <errno.h>
-#include <sys/stat.h>
-#include <sys/times.h>
-#include <sys/unistd.h>
-#include <platform-abstraction/panic.h>
 #include <string.h>
 
 #include <libopencm3/stm32/usart.h>
@@ -18,7 +12,7 @@ typedef struct {
     int (*read)   (void *file, char *buf, int len);
 } file_ops_t;
 
-extern file_ops_t uart_ops; // defined below
+extern const file_ops_t uart_ops; // defined below
 
 #define FILE_DESC_TABLE_SIZE 10
 struct {
@@ -67,7 +61,7 @@ const file_ops_t uart_ops = {
 
 // /dev/ devices
 typedef struct {
-     char *devicename;
+    const char *devicename;
     const file_ops_t *ops;
     void *dev;
 } dev_file_ops_t;
@@ -256,7 +250,7 @@ parts of this code are from http://stm32discovery.nano-age.co.uk/open-source-dev
  Increase program data space.
  Malloc and related functions depend on this
  */
-caddr_t _sbrk(int incr) {
+void *_sbrk(int incr) {
     extern char _sheap;
     extern char _eheap;
     static char *heap_end = 0;
@@ -270,11 +264,11 @@ caddr_t _sbrk(int incr) {
     if (heap_end + incr > &_eheap)
     {
         errno = ENOMEM;
-        return (caddr_t) -1;
+        return (void *) -1;
     }
 
     heap_end += incr;
-    return (caddr_t) prev_heap_end;
+    return (void *) prev_heap_end;
 }
 
 // /*
