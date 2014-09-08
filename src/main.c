@@ -9,6 +9,7 @@
 #include "i2c.h"
 #include "uart.h"
 #include "sensors.h"
+#include "ms5611.h"
 #include "can.h"
 
 #include <os.h>
@@ -61,6 +62,21 @@ void my_thread_main(void *arg)
     gpio_clear(GPIOB, GPIO15);
 
     os_thread_sleep_us(1000000);
+
+    ms5611_t barometer;
+
+    ms5611_i2c_init(&barometer, &dev_i2c1, 0);
+
+    os_thread_sleep_us(1000000);
+
+    uint32_t ad_p, ad_t, p;
+    int32_t t;
+
+    ad_p = ms5611_press_adc_read(&barometer, MS5611_OSR_4096);
+    ad_t = ms5611_temp_adc_read(&barometer, MS5611_OSR_4096);
+    p = ms5611_calc_press(&barometer, ad_p, ad_t, &t);
+
+    printf("t: %d, p: %u\n", (int)t, (unsigned int)p);
 
     while (1) {
         if (mpu_ping() && EEPROM_ping() && HMC5883L_ping() && H3LIS331DL_ping() && MS5611_ping()) {
