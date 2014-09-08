@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/spi.h>
 #include "mpu60X0.h"
 #include "i2c.h"
@@ -70,7 +71,7 @@ void my_thread_main(void *arg)
             gpio_clear(GPIOB, GPIO14);
         }
         gpio_toggle(GPIOA, GPIO8);
-        os_thread_sleep_us(100000);
+        os_thread_sleep_us(500000);
     }
 }
 
@@ -81,11 +82,54 @@ uint8_t test_stack[1024];
 void test_main(void *arg)
 {
     printf("hello world\n");
+}
+
+
+
+#define BOOTLOADER_MAGIC_VALUE 0xaabbccdd00112233
+static __attribute__((section(".noinit"))) uint64_t execute_bootloader;
+static void bootloader(void)
+{
+    if (execute_bootloader == BOOTLOADER_MAGIC_VALUE) {
+        execute_bootloader = 0;
+        __asm__ __volatile__ (
+            "LDR  R0, =0x1FFF0000   \n"
+            "LDR  SP,[R0, #0]       \n"
+            "LDR  R0,[R0, #4]       \n"
+            "BX   R0                \n"
+        );
+    }
+}
+
+void scb_reset_system(void)
+{
+    SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_SYSRESETREQ;
     while (1);
 }
 
+void reboot_and_run_bootloader(void)
+{
+    execute_bootloader = BOOTLOADER_MAGIC_VALUE;
+    scb_reset_system();
+}
+
+
 int main(void)
 {
+    uint32_t csr_copy = RCC_CSR;
+    RCC_CSR |= RCC_CSR_RMVF; // remove reset flag
+    if (csr_copy & RCC_CSR_SFTRSTF) { // software reset
+        bootloader();
+    } else if (csr_copy & RCC_CSR_IWDGRSTF) { // independent watchdog
+
+    } else if (csr_copy & RCC_CSR_PINRSTF) { // reset pin
+
+    } else if (csr_copy & (RCC_CSR_BORRSTF | RCC_CSR_PORRSTF)) { // brownout / power on reset
+
+    } else {
+
+    }
+
     rcc_clock_setup_hse_3v3(&hse_16mhz_3v3[CLOCK_3V3_168MHZ]);
 
     fpu_config();
@@ -111,6 +155,7 @@ int main(void)
 
     uart_conn1_init(38400);
     printf("=== boot ===\n");
+    reboot_and_run_bootloader();
 
     delay(10000000);
      // VCC_A enable
