@@ -6,6 +6,18 @@ Q = @
 COLOR		= \033[1;31m
 COLOR_CLEAR = \033[0m
 PRINT = @printf "$(COLOR)%s$(COLOR_CLEAR)\n"
+
+include uavcan/libuavcan/include.mk
+CXXSRC += $(LIBUAVCAN_SRC)
+INCDIR += -I$(LIBUAVCAN_INC)
+
+include uavcan/libuavcan_drivers/cvra/driver/include.mk
+CXXSRC += $(LIBUAVCAN_CVRA_SRC)
+INCDIR += -I$(LIBUAVCAN_CVRA_INC)
+
+$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
+INCDIR += -I./dsdlc_generated
+
 {% endblock %}
 
 {% block cflags %}
