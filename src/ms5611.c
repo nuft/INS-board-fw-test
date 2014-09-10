@@ -142,8 +142,15 @@ uint32_t ms5611_temp_adc_read(ms5611_t *ms5611, uint8_t osr)
 
 int32_t ms5611_calc_temp(ms5611_t *ms5611, uint32_t raw_t)
 {
-    int32_t dt = (int32_t) raw_t - (ms5611->prom[PROM_TREF]<<8);
-    return (int32_t) 2000 + (dt * ms5611->prom[PROM_TEMPSENS] / (1<<23));
+    int32_t dt, temp;
+
+    dt = (int32_t) raw_t - (ms5611->prom[PROM_TREF]<<8);
+    temp = (int32_t) 2000 + (dt * ms5611->prom[PROM_TEMPSENS] / (1<<23));
+    /* low temperature correcture, (temp < 20.00 C) */
+    if (temp < 2000) {
+        temp = temp - SQUARE(dt) / (1<<31);
+    }
+    return temp;
 }
 
 uint32_t ms5611_calc_press(ms5611_t *ms5611, uint32_t raw_p, uint32_t raw_t, int32_t *p_temp)
