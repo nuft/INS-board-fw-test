@@ -26,6 +26,9 @@ const uint16_t ms5611_osr_dly_us[] = {600, 1170, 2280, 4540, 9040};
 void ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value)
 {
     uint8_t addr;
+
+    ms5611->mode = ms5611_i2c;
+
     /* LSbit of addr is complementary of CSB pin */
     if (csb_pin_value == 1) {
         addr = 0x76;
@@ -43,7 +46,7 @@ void ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value)
 void ms5611_reset(ms5611_t *ms5611)
 {
     uint8_t reset_cmd = MS5611_CMD_RESET;
-    if (ms5611->mode == i2c_mode) {
+    if (ms5611->mode == ms5611_i2c) {
         i2c_write(&ms5611->dev.i2c, &reset_cmd, 1);
     }
 }
@@ -66,7 +69,7 @@ int ms5611_prom_read(ms5611_t *ms5611)
 
     addr = MS5611_CMD_PROM_READ_BASE + 2;
 
-    if (ms5611->mode == i2c_mode) {
+    if (ms5611->mode == ms5611_i2c) {
         uint8_t i;
         for (i = 0; i < 6; i++) {
             ms5611->prom[i] = ms5611_prom_read_i2c(ms5611, addr);
@@ -114,7 +117,7 @@ uint32_t ms5611_press_adc_read(ms5611_t *ms5611, uint8_t osr)
 
     cmd = MS5611_CMD_ADC_PRESS(osr);
 
-    if (ms5611->mode == i2c_mode) {
+    if (ms5611->mode == ms5611_i2c) {
         return ms5611_adc_read_i2c(ms5611, cmd, osr);
     } else {
         // return ms5611_adc_read_spi(ms5611, cmd);
@@ -129,7 +132,7 @@ uint32_t ms5611_temp_adc_read(ms5611_t *ms5611, uint8_t osr)
 
     cmd = MS5611_CMD_ADC_TEMP(osr);
 
-    if (ms5611->mode == i2c_mode) {
+    if (ms5611->mode == ms5611_i2c) {
         return ms5611_adc_read_i2c(ms5611, cmd, osr);
     } else {
         // return ms5611_adc_read_spi(ms5611, cmd);

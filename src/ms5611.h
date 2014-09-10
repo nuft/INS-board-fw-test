@@ -16,7 +16,7 @@ typedef struct {
         i2c_dev_t i2c;
         // spi_dev_t spi;
     } dev;
-    enum {i2c_mode = 0, spi_mode = 1} mode;
+    enum {ms5611_i2c = 0, ms5611_spi = 1} mode;
     uint16_t prom[6];
 } ms5611_t;
 
