@@ -10,3 +10,6 @@
 [submodule "platform-abstraction"]
 	path = platform-abstraction
 	url = https://github.com/nuft/platform-abstraction.git
+[submodule "uavcan"]
+	path = uavcan
+	url = https://github.com/pavel-kirienko/uavcan.git
