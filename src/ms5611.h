@@ -42,8 +42,10 @@ uint32_t ms5611_press_adc_read(ms5611_t *ms5611, uint8_t osr);
  *  Returns 0 if measurement failed. */
 uint32_t ms5611_temp_adc_read(ms5611_t *ms5611, uint8_t osr);
 
-/**  */
+/** Calculates pressure from pressure and temperature adc values.
+ *  Optional: Save temperature in 1/100 deg Celsius to p_temp pointer.
+ *  Returns pressure in 1/100 mbar (= 1 Pa). */
 uint32_t ms5611_calc_press(ms5611_t *ms5611, uint32_t raw_p, uint32_t raw_t, int32_t *p_temp);
 
-/**  */
+/** Calculates temperature from adc value. */
 int32_t ms5611_calc_temp(ms5611_t *ms5611, uint32_t raw_t);
