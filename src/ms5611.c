@@ -137,7 +137,7 @@ int ms5611_prom_read(ms5611_t *ms5611)
 
     /* check 4-bit CRC */
     if ((crc_read & 0x000f) != crc) {
-        return -1;
+        return 1;
     }
 
     return 0;

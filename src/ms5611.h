@@ -21,7 +21,8 @@ typedef struct {
 } ms5611_t;
 
 /** Initializes MS5611 device for I2C.
- *  The address depends on the value of the CSB pin. */
+ *  The address depends on the value of the CSB pin.
+ *  Returns 0 if initialization was successful. */
 int ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value);
 
 /** Initializes MS5611 device for SPI */
