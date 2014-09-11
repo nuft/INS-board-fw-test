@@ -12,6 +12,8 @@
 #include "ms5611.h"
 #include "can.h"
 
+#include "ins-board.h"
+
 #include <os.h>
 #include <platform-abstraction/threading.h>
 
@@ -65,7 +67,16 @@ void my_thread_main(void *arg)
 
     ms5611_t barometer;
 
-    ms5611_i2c_init(&barometer, &dev_i2c1, 0);
+    printf("ms5611 i2c init\n");
+
+    if (ms5611_i2c_init(&barometer, &dev_i2c1, 0) != 0) {
+        printf("ms5611 crc error\n");
+
+        while (1) {
+            ERROR_LED_TOGGLE();
+            os_thread_sleep_us(100000);
+        }
+    }
 
     os_thread_sleep_us(1000000);
 
@@ -171,7 +182,7 @@ int main(void)
 
     uart_conn1_init(38400);
     printf("=== boot ===\n");
-    reboot_and_run_bootloader();
+    // reboot_and_run_bootloader();
 
     delay(10000000);
      // VCC_A enable
