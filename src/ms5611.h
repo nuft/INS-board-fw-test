@@ -22,7 +22,7 @@ typedef struct {
 
 /** Initializes MS5611 device for I2C.
  *  The address depends on the value of the CSB pin. */
-void ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value);
+int ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value);
 
 /** Initializes MS5611 device for SPI */
 // void ms5611_spi_init(ms5611_t *ms5611, spi_dev_t *intf);

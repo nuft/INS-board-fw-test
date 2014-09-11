@@ -22,8 +22,13 @@
 /* global variables */
 const uint16_t ms5611_osr_dly_us[] = {600, 1170, 2280, 4540, 9040};
 
+static uint16_t ms5611_prom_read_word_i2c(ms5611_t *ms5611, uint8_t addr);
+static uint16_t ms5611_prom_read_word(ms5611_t *ms5611, uint8_t addr);
+static uint16_t ms5611_crc4_update(uint16_t crc, uint16_t data);
+static uint32_t ms5611_adc_read_i2c(ms5611_t *ms5611, uint8_t cmd, uint8_t osr);
 
-void ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value)
+
+int ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value)
 {
     uint8_t addr;
 
@@ -40,7 +45,9 @@ void ms5611_i2c_init(ms5611_t *ms5611, i2c_bus_t *bus, int csb_pin_value)
 
     ms5611_reset(ms5611);
 
-    ms5611_prom_read(ms5611);
+    int ret = ms5611_prom_read(ms5611);
+
+    return ret;
 }
 
 void ms5611_reset(ms5611_t *ms5611)
@@ -51,7 +58,7 @@ void ms5611_reset(ms5611_t *ms5611)
     }
 }
 
-static uint16_t ms5611_prom_read_i2c(ms5611_t *ms5611, uint8_t addr)
+static uint16_t ms5611_prom_read_word_i2c(ms5611_t *ms5611, uint8_t addr)
 {
     uint8_t buf[2];
 
@@ -59,33 +66,79 @@ static uint16_t ms5611_prom_read_i2c(ms5611_t *ms5611, uint8_t addr)
 
     i2c_read(&ms5611->dev.i2c, buf, 2);
 
-    return (uint16_t) buf[1] | (buf[0]<<8);
+    return (uint16_t) buf[1] | (buf[0] << 8);
+}
+
+static uint16_t ms5611_prom_read_word(ms5611_t *ms5611, uint8_t addr)
+{
+    if (ms5611->mode == ms5611_i2c) {
+        return ms5611_prom_read_word_i2c(ms5611, addr);
+    } else {
+        // return ms5611_prom_read_word_spi(ms5611, addr);
+        return 0;
+    }
+}
+
+/* MS5611 4bit CRC calculation as described in AN520. */
+static uint16_t ms5611_crc4_update(uint16_t crc, uint16_t data)
+{
+    uint8_t n_bit;
+
+    crc ^= data>>8;
+
+    for (n_bit = 8; n_bit > 0; n_bit--) {
+        if (crc & (0x8000)) {
+            crc = (crc << 1) ^ 0x3000;
+        } else {
+            crc = (crc << 1);
+        }
+    }
+
+    crc ^= (data & 0x00ff);
+
+    for (n_bit = 8; n_bit > 0; n_bit--) {
+        if (crc & (0x8000)) {
+            crc = (crc << 1) ^ 0x3000;
+        } else {
+            crc = (crc << 1);
+        }
+    }
+
+    return crc;
 }
 
 int ms5611_prom_read(ms5611_t *ms5611)
 {
     uint8_t addr;
-    uint16_t crc;
+    uint16_t crc_read, crc;
 
-    addr = MS5611_CMD_PROM_READ_BASE + 2;
+    addr = MS5611_CMD_PROM_READ_BASE;
 
-    if (ms5611->mode == ms5611_i2c) {
-        uint8_t i;
-        for (i = 0; i < 6; i++) {
-            ms5611->prom[i] = ms5611_prom_read_i2c(ms5611, addr);
-            addr += 2;
-        }
-        crc = ms5611_prom_read_i2c(ms5611, addr);
-    } else {
-        // for (i = 0; i < 6; i++) {
-        //     ms5611->prom[i] = ms5611_prom_read_spi(ms5611, addr);
-        //     addr += 2;
-        // }
-        // crc = ms5611_prom_read_spi(ms5611, addr);
+    /* read reserved 16 bit for CRC */
+    uint16_t d = ms5611_prom_read_word(ms5611, addr);
+    crc = ms5611_crc4_update(0, d);
+    addr += 2;
+
+    /* read PROM memory */
+    uint8_t i;
+    for (i = 0; i < 6; i++) {
+        d = ms5611_prom_read_word(ms5611, addr);
+        crc = ms5611_crc4_update(crc, d);
+        ms5611->prom[i] = d;
+        addr += 2;
     }
 
-    /* todo: check crc */
-    (void) crc;
+    /* read CRC word */
+    crc_read = ms5611_prom_read_word(ms5611, addr);
+    /* mask out CRC byte for calcualtion */
+    crc = ms5611_crc4_update(crc, crc_read & 0xff00);
+    /* get 4-bit CRC */
+    crc = (crc>>12) & 0x000f;
+
+    /* check 4-bit CRC */
+    if ((crc_read & 0x000f) != crc) {
+        return -1;
+    }
 
     return 0;
 }
@@ -108,7 +161,7 @@ static uint32_t ms5611_adc_read_i2c(ms5611_t *ms5611, uint8_t cmd, uint8_t osr)
     i2c_read(&ms5611->dev.i2c, buf, 3);
 
     /* setup 24bit result, MSByte received first */
-    return (uint32_t) buf[2]|(buf[1]<<8)|(buf[0]<<16);
+    return (uint32_t) buf[2] | (buf[1] << 8) | (buf[0] << 16);
 }
 
 uint32_t ms5611_press_adc_read(ms5611_t *ms5611, uint8_t osr)
