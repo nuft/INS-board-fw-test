@@ -11,6 +11,7 @@ target.arm:
     - src/runtime.c
     - src/system_stm32f4xx.c
     - src/can.c
+    - src/spi_master.c
 
 templates:
     Makefile.jinja: Makefile
