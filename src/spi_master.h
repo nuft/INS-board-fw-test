@@ -57,11 +57,11 @@
 #define SPI_ERR_RESET       4
 
 /* SPI tansmission data structure */
-struct spi_transfer {
-    uint8_t *r;
-    uint8_t *t;
+typedef struct {
+    uint8_t *tx;
+    uint8_t *rx;
     uint16_t len;
-};
+} spi_access_t;
 
 /* SPI bus */
 typedef struct {
@@ -77,16 +77,16 @@ typedef struct {
     } mode;
     union {
         struct {
-            struct spi_transfer *transfer;
+            spi_access_t *access;
             uint16_t rx_pos;
             uint16_t tx_pos;
-            uint8_t rx_transfer;
-            uint8_t tx_transfer;
-            uint8_t nb_transfers;
+            uint8_t rx_acc_pos;
+            uint8_t tx_acc_pos;
+            uint8_t nb_acc;
         } multi;
         struct {
-            uint8_t *t;
-            uint8_t *r;
+            uint8_t *tx;
+            uint8_t *rx;
             uint16_t len;
         } single;
         struct {
@@ -114,7 +114,7 @@ void spi_slave_device_init(spi_slave_t *slave, spi_bus_t *bus, uint32_t cs_port,
 /** Access SPI bus as master */
 int spi_access(spi_slave_t *slave, uint8_t *tx,  uint8_t *rx, uint16_t len);
 
-int spi_multi_access(spi_slave_t *slave, struct spi_transfer *t, uint8_t nb_transf);
+int spi_multi_access(spi_slave_t *slave, spi_access_t *acc, uint8_t nb_acc);
 
 int spi_request(spi_slave_t *slave, uint8_t reqest, uint8_t *response, uint16_t response_len);
 
