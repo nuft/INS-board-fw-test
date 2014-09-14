@@ -70,12 +70,31 @@ typedef struct {
     mutex_t mutex;
     int error;
     uint32_t config;
-    struct spi_transfer *transfer;
-    uint16_t rx_pos;
-    uint16_t tx_pos;
-    uint8_t rx_transfer;
-    uint8_t tx_transfer;
-    uint8_t nb_transfers;
+    enum {
+        spi_mode_multi_access,
+        spi_mode_single_access,
+        spi_mode_request
+    } mode;
+    union {
+        struct {
+            struct spi_transfer *transfer;
+            uint16_t rx_pos;
+            uint16_t tx_pos;
+            uint8_t rx_transfer;
+            uint8_t tx_transfer;
+            uint8_t nb_transfers;
+        } multi;
+        struct {
+            uint8_t *t;
+            uint8_t *r;
+            uint16_t len;
+        } single;
+        struct {
+            uint8_t reqest;
+            uint8_t *response;
+            uint16_t len;
+        } request;
+    } access;
 } spi_bus_t;
 
 /* SPI slave device */
@@ -93,7 +112,11 @@ void spi_bus_init(spi_bus_t *bus, uint32_t peripheral);
 void spi_slave_device_init(spi_slave_t *slave, spi_bus_t *bus, uint32_t cs_port, uint16_t cs_pin, uint32_t config);
 
 /** Access SPI bus as master */
-int spi_master_access(spi_slave_t *slave, struct spi_transfer *t, uint8_t nb_transf);
+int spi_access(spi_slave_t *slave, uint8_t *tx,  uint8_t *rx, uint16_t len);
+
+int spi_multi_access(spi_slave_t *slave, struct spi_transfer *t, uint8_t nb_transf);
+
+int spi_request(spi_slave_t *slave, uint8_t reqest, uint8_t *response, uint16_t response_len);
 
 /** SPI Interrupt handler.
  *  Must be called from each SPI interrupt with the corresponding bus pointer.
