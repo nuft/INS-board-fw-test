@@ -46,6 +46,8 @@ void fpu_config(void)
     FPCCR = fpccr;
 }
 
+void run_node_thread(void);
+
 os_thread_t my_thread;
 uint8_t my_thread_stack[1024];
 
@@ -53,23 +55,25 @@ void my_thread_main(void *arg)
 {
     (void) arg;
 
-    i2c_gpio_init();
-    i2c_init();
+    run_node_thread();
 
-    mpu_spi_init();
+    // i2c_gpio_init();
+    // i2c_init();
 
-    gpio_clear(GPIOB, GPIO15);
+    // mpu_spi_init();
 
-    os_thread_sleep_us(1000000);
+    // gpio_clear(GPIOB, GPIO15);
+
+    // os_thread_sleep_us(1000000);
 
     while (1) {
-        if (mpu_ping() && EEPROM_ping() && HMC5883L_ping() && H3LIS331DL_ping() && MS5611_ping()) {
-            gpio_set(GPIOB, GPIO14);
-            gpio_clear(GPIOA, GPIO10);
-        } else {
-            gpio_set(GPIOA, GPIO10);
-            gpio_clear(GPIOB, GPIO14);
-        }
+        // if (mpu_ping() && EEPROM_ping() && HMC5883L_ping() && H3LIS331DL_ping() && MS5611_ping()) {
+        //     gpio_set(GPIOB, GPIO14);
+        //     gpio_clear(GPIOA, GPIO10);
+        // } else {
+        //     gpio_set(GPIOA, GPIO10);
+        //     gpio_clear(GPIOB, GPIO14);
+        // }
         gpio_toggle(GPIOA, GPIO8);
         os_thread_sleep_us(500000);
     }
@@ -84,6 +88,17 @@ void test_main(void *arg)
     printf("hello world\n");
 }
 
+
+os_thread_t node_thread;
+THREAD_STACK node_stack[2048];
+
+extern void node_main(void *arg);
+
+void run_node_thread(void)
+{
+    int node_id = 42;
+    os_thread_create(&node_thread, node_main, node_stack, sizeof(node_stack), "UAVCAN Node", 2, &node_id);
+}
 
 
 #define BOOTLOADER_MAGIC_VALUE 0xaabbccdd00112233
@@ -155,7 +170,7 @@ int main(void)
 
     uart_conn1_init(38400);
     printf("=== boot ===\n");
-    reboot_and_run_bootloader();
+    // reboot_and_run_bootloader();
 
     delay(10000000);
      // VCC_A enable

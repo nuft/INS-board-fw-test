@@ -2,8 +2,9 @@
 #include <errno.h>
 #include <string.h>
 #include <platform-abstraction/criticalsection.h>
+#include <platform-abstraction/panic.h>
 #include <libopencm3/stm32/usart.h>
-
+#include <os.h>
 
 typedef struct {
     void *(*open) (void *file, const char *path, int flags, int mode);
@@ -174,12 +175,18 @@ parts of this code are from http://stm32discovery.nano-age.co.uk/open-source-dev
 // char *__env[1] = { 0 };
 // char **environ = __env;
 
-// void _exit(int status) {
-//     _write(1, "exit", 4);
-//     while (1) {
-//         ;
-//     }
-// }
+void _exit(int status) {
+    OS_ERR err;
+    /* NULL kills running task */
+    OSTaskDel((OS_TCB *)NULL, &err);
+
+    if (err != OS_ERR_NONE) {
+        PANIC("exit from non-thread context");
+    }
+
+    /* should not return */
+    while (1);
+}
 
 // /*
 //  execve
@@ -199,51 +206,52 @@ parts of this code are from http://stm32discovery.nano-age.co.uk/open-source-dev
 //     return -1;
 // }
 
-// /*
-//  fstat
-//  Status of an open file. For consistency with other minimal implementations in these examples,
-//  all files are regarded as character special devices.
-//  The `sys/stat.h' header file required is distributed in the `include' subdirectory for this C library.
-//  */
-// int _fstat(int file, struct stat *st) {
-//     st->st_mode = S_IFCHR;
-//     return 0;
-// }
+
+#include <sys/stat.h>
+/*
+ fstat
+ Status of an open file. For consistency with other minimal implementations in these examples,
+ all files are regarded as character special devices.
+ The `sys/stat.h' header file required is distributed in the `include' subdirectory for this C library.
+ */
+int _fstat(int file, struct stat *st) {
+    st->st_mode = S_IFCHR;
+    return 0;
+}
 
 // /*
 //  getpid
 //  Process-ID; this is sometimes used to generate strings unlikely to conflict with other processes. Minimal implementation, for a system without processes:
 //  */
 
-// int _getpid(void) {
-//     return 1;
-// }
+int _getpid(void) {
+    return 1;
+}
 
-// /*
-//  isatty
-//  Query whether output stream is a terminal. For consistency with the other minimal implementations,
-//  */
-// int _isatty(int file) {
-//     switch (file){
-//     case STDOUT_FILENO:
-//     case STDERR_FILENO:
-//     case STDIN_FILENO:
-//         return 1;
-//     default:
-//         //errno = ENOTTY;
-//         errno = EBADF;
-//         return 0;
-//     }
-// }
+/*
+ isatty
+ Query whether output stream is a terminal. For consistency with the other minimal implementations,
+ */
+int _isatty(int file) {
+    switch (file) {
+        case 0:
+        case 1:
+        case 2:
+            return 1;
+        default:
+            errno = ENOTTY;
+            return 0;
+    }
+}
 
-// /*
-//  kill
-//  Send a signal. Minimal implementation:
-//  */
-// int _kill(int pid, int sig) {
-//     errno = EINVAL;
-//     return (-1);
-// }
+/*
+ kill
+ Send a signal. Minimal implementation:
+ */
+int _kill(int pid, int sig) {
+    errno = EINVAL;
+    return (-1);
+}
 
 // /*
 //  link
@@ -254,13 +262,13 @@ parts of this code are from http://stm32discovery.nano-age.co.uk/open-source-dev
 //     return -1;
 // }
 
-// /*
-//  lseek
-//  Set position in a file. Minimal implementation:
-//  */
-// int _lseek(int file, int ptr, int dir) {
-//     return 0;
-// }
+/*
+ lseek
+ Set position in a file. Minimal implementation:
+ */
+int _lseek(int file, int ptr, int dir) {
+    return 0;
+}
 
 /*
  sbrk

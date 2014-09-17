@@ -11,6 +11,8 @@ target.arm:
     - src/runtime.c
     - src/system_stm32f4xx.c
     - src/can.c
+    - src/cpp_dependency.cpp
+    - src/node-test.cpp
 
 templates:
     Makefile.jinja: Makefile
