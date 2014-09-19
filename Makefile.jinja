@@ -58,7 +58,8 @@ LDFLAGS	+= -larm_cortexM4lf_math
 {% endblock %}
 
 {% block linking %}
-all: $(PROJNAME).elf $(PROJNAME).bin $(PROJNAME).hex $(PROJNAME).lst $(PROJNAME).size.txt
+all: $(PROJNAME).elf $(PROJNAME).bin $(PROJNAME).hex $(PROJNAME).size.txt
+	$(Q) rm -f $(PROJNAME).lst
 	$(Q) $(SZ) $(PROJNAME).elf
 
 $(PROJNAME).elf: $(OBJS)
