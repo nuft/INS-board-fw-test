@@ -12,6 +12,7 @@
 					"uCOS-III/Source/",
 					"uavcan/libuavcan/include/",
 					"uavcan/libuavcan_drivers/cvra/driver/include/",
+					"dsdlc_generated/",
 					"./"
 				]
 			}
