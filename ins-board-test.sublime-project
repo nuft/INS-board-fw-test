@@ -22,10 +22,6 @@
 		{
 			"follow_symlinks": true,
 			"path": "."
-		},
-		{
-			"follow_symlinks": true,
-			"path": "/Users/pa/armtools/gcc-arm-none-eabi-4_8-2014q1/share/gcc-arm-none-eabi/samples"
 		}
 	]
 }
