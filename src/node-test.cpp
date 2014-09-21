@@ -2,63 +2,36 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <uavcan/uavcan.hpp>
-#include <uavcan_stm32/can.hpp>
-#include <uavcan_stm32/clock.hpp>
+#include <uavcan_stm32/uavcan_stm32.hpp>
 #include <platform-abstraction/threading.h>
 
-/**
- * These functions are platform dependent, so they are not included in this example.
- * Refer to the relevant platform documentation to learn how to implement them.
- */
-static uavcan_stm32::CanDriver can_driver;
-
-uavcan::ICanDriver& getCanDriver()
-{
-    return can_driver;
-}
-
-static uavcan_stm32::SystemClock system_clock;
-
-uavcan::ISystemClock& getSystemClock()
-{
-    return system_clock;
-}
+#include <uavcan/protocol/debug/KeyValue.hpp> // uavcan.protocol.debug.KeyValue
 
 
-/**
- * Memory pool size largely depends on the number of CAN ifaces and on application behavior.
- * Please read the documentation for the class uavcan::Node to learn more.
- */
+uavcan_stm32::CanInitHelper<128> can;
 
 typedef uavcan::Node<16384> Node;
 
-/**
- * Node object will be constructed at the time of the first access.
- * Note that most library objects are noncopyable (e.g. publishers, subscribers, servers, callers, timers, ...).
- * Attempt to copy a noncopyable object causes compilation failure.
- */
-static Node& getNode()
+uavcan::LazyConstructor<Node> node_;
+
+Node& getNode()
 {
-    static Node node(getCanDriver(), getSystemClock());
-    return node;
+    if (!node_.isConstructed())
+    {
+        node_.construct<uavcan::ICanDriver&, uavcan::ISystemClock&>(can.driver, uavcan_stm32::SystemClock::instance());
+    }
+    return *node_;
 }
 
 void cpp_node_main(void)
 {
-    std::printf("node_main\n");
-
-    const int self_node_id = 42;
-
     /*
-     * Node initialization.
-     * Node ID and name are required; otherwise, the node will refuse to start.
-     * Version info is optional.
+     * Setting up the node parameters
      */
     Node& node = getNode();
 
-    node.setNodeID(self_node_id);
-
-    node.setName("org.uavcan.tutorials");
+    node.setNodeID(64);
+    node.setName("org.uavcan.stm32_test_stm32");
 
     uavcan::protocol::SoftwareVersion sw_version;  // Standard type uavcan.protocol.SoftwareVersion
     sw_version.major = 1;
@@ -69,98 +42,109 @@ void cpp_node_main(void)
     node.setHardwareVersion(hw_version);
 
     /*
-     * Start the node.
-     * All returnable error codes are listed in the header file uavcan/error.hpp.
+     * Initializing the UAVCAN node - this may take a while
      */
     while (true)
     {
-        const int res = node.start();
+        // Calling start() multiple times is OK - only the first successfull call will be effective
+        int res = node.start();
+
+#if !UAVCAN_TINY
+        uavcan::NetworkCompatibilityCheckResult ncc_result;
+        if (res >= 0)
+        {
+            std::printf("Checking network compatibility...\n");
+            res = node.checkNetworkCompatibility(ncc_result);
+        }
+#endif
+
         if (res < 0)
         {
-            std::printf("Node start failed: %d, will retry\n", res);
-            os_thread_sleep_us(1000);
+            std::printf("Node initialization failure: %i, will try agin soon\n", res);
         }
-        else { break; }
-    }
-
-    /*
-     * Perform a network compatibility check.
-     * This step is not mandatory and, in fact, rarely needed (read the specs).
-     * All returnable error codes are listed in the header file uavcan/error.hpp.
-     */
-    uavcan::NetworkCompatibilityCheckResult network_compat_check_result;
-    while (true)
-    {
-        const int res = node.checkNetworkCompatibility(network_compat_check_result);
-        if (res < 0)
+#if !UAVCAN_TINY
+        else if (!ncc_result.isOk())
         {
-            std::printf("Network compatibility check failed: %d, will retry\n", res);
-            os_thread_sleep_us(1000);
+            std::printf("Network conflict with %u, will try again soon\n", ncc_result.conflicting_node.get());
         }
-        else { break; }
-    }
-
-    if (!network_compat_check_result.isOk())
-    {
-        /*
-         * Possible reasons:
-         *  - There's another node with the same Node ID.
-         *  - There's at least one incompatible data type in use on at least one remote node.
-         */
-        std::printf("Network conflict with node %d\n",
-                    static_cast<int>(network_compat_check_result.conflicting_node.get()));
-        return;
-    }
-
-    /*
-     * Informing other nodes that we're ready to work.
-     * Default status is INITIALIZING.
-     */
-    node.setStatusOk();
-
-    /*
-     * Some logging.
-     * Log formatting is not available in C++03 mode.
-     */
-    node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-    // node.logInfo("main", "Hello world! My Node ID: %*",
-    //              static_cast<int>(node.getNodeID().get()));
-
-    std::puts("Hello world!");
-
-    /*
-     * Node loop.
-     * The thread should not block outside Node::spin().
-     */
-    while (true)
-    {
-        /*
-         * If there's nothing to do, the thread blocks inside the driver's
-         * method select() until the timeout expires or an error occurs (e.g. driver failure).
-         * All error codes are listed in the header uavcan/error.hpp.
-         */
-        const int res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
-        if (res < 0)
-        {
-            std::printf("Transient failure: %d\n", res);
-        }
-
-        /*
-         * Random status transitions.
-         * In real applications, the status code shall reflect node health; this feature is very important.
-         */
-        const float random = std::rand() / float(RAND_MAX);
-        if (random < 0.5)
-        {
-            node.setStatusOk();
-        }
-        else if (random < 0.8)
-        {
-            node.setStatusWarning();
-        }
+#endif
         else
         {
-            node.setStatusCritical();  // So bad.
+            break;
+        }
+        os_thread_sleep_us(1000);
+    }
+
+    uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(node);
+    const int kv_pub_init_res = kv_pub.init();
+    if (kv_pub_init_res < 0)
+    {
+        std::printf("error KeyValue publisher init");
+        while (1);
+    }
+
+    kv_pub.setTxTimeout(uavcan::MonotonicDuration::fromMSec(1000));
+
+
+    // uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(node);
+
+    // const int kv_sub_start_res =
+    //     kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { std::cout << msg << std::endl; });
+
+    // if (kv_sub_start_res < 0)
+    // {
+    //     std::printf("error KeyValue subscriber init");
+    //     while (1);
+    // }
+
+    /*
+     * Main loop
+     */
+    std::printf("UAVCAN node started\n");
+    node.setStatusOk();
+    while (true)
+    {
+        /*
+         * Spinning for 1 second.
+         * The method spin() may return earlier if an error occurs (e.g. driver failure).
+         * All error codes are listed in the header uavcan/error.hpp.
+         */
+        const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
+        if (spin_res < 0)
+        {
+            std::printf("Spin failure: %i\n", spin_res);
+        }
+
+        /*
+         * Publishing a random value using the publisher created above.
+         * All message types have zero-initializing default constructors.
+         * Relevant usage info for every data type is provided in its DSDL definition.
+         */
+        uavcan::protocol::debug::KeyValue kv_msg;  // Always zero initialized
+        kv_msg.type = kv_msg.TYPE_FLOAT;
+        kv_msg.numeric_value.push_back(3.141);
+
+        /*
+         * Arrays in DSDL types are quite extensive in the sense that they can be static,
+         * or dynamic (no heap needed - all memory is pre-allocated), or they can emulate std::string.
+         * The last one is called string-like arrays.
+         * ASCII strings can be directly assigned or appended to string-like arrays.
+         * For more info, please read the documentation for the class uavcan::Array<>.
+         */
+        kv_msg.key = "random";  // "random"
+        kv_msg.key += "_";      // "random_"
+        kv_msg.key += "float";  // "random_float"
+
+        /*
+         * Publishing the message. Two methods are available:
+         *  - broadcast(message)
+         *  - unicast(message, destination_node_id)
+         * Here we use broadcasting.
+         */
+        const int pub_res = kv_pub.broadcast(kv_msg);
+        if (pub_res < 0)
+        {
+            std::printf("KV publication failure: %d\n", pub_res);
         }
     }
 }
