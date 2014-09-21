@@ -11,7 +11,7 @@
 					"libopencm3/include/",
 					"uCOS-III/Source/",
 					"uavcan/libuavcan/include/",
-					"uavcan/libuavcan_drivers/cvra/driver/include/",
+					"uavcan/libuavcan_drivers/stm32/driver/include/",
 					"dsdlc_generated/",
 					"./"
 				]
