@@ -5,12 +5,13 @@
 		{
 			"clang":
 			{
-				"extra_flags": "-DSTM32F4 -DUAVCAN_STM32_CVRA_PLATFORM",
+				"extra_flags": "-DSTM32F4 -DUAVCAN_STM32_CVRA_PLATFORM -DUAVCAN_STM32_NUM_IFACES=2",
 				"include_dirs":
 				[
 					"libopencm3/include/",
 					"uCOS-III/Source/",
 					"uCOS-III/Port/",
+					"uCOS-III/Cfg/",
 					"uavcan/libuavcan/include/",
 					"uavcan/libuavcan_drivers/stm32/driver/include/",
 					"dsdlc_generated/",

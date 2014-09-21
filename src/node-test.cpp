@@ -2,22 +2,22 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <uavcan/uavcan.hpp>
-#include <uavcan_cvra/can.hpp>
-#include <uavcan_cvra/system_clock.hpp>
+#include <uavcan_stm32/can.hpp>
+#include <uavcan_stm32/clock.hpp>
 #include <platform-abstraction/threading.h>
 
 /**
  * These functions are platform dependent, so they are not included in this example.
  * Refer to the relevant platform documentation to learn how to implement them.
  */
-static uavcan_cvra::CanDriver can_driver;
+static uavcan_stm32::CanDriver can_driver;
 
 uavcan::ICanDriver& getCanDriver()
 {
     return can_driver;
 }
 
-static uavcan_cvra::SystemClock system_clock;
+static uavcan_stm32::SystemClock system_clock;
 
 uavcan::ISystemClock& getSystemClock()
 {
