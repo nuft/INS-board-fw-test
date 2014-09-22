@@ -35,6 +35,8 @@ Node& getNode()
 void can2_gpio_init(void)
 {
     // enable CAN transceiver
+    gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
+    gpio_clear(GPIOC, GPIO5);
     gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
 }
