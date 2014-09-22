@@ -74,8 +74,9 @@ void my_thread_main(void *arg)
         //     gpio_set(GPIOA, GPIO10);
         //     gpio_clear(GPIOB, GPIO14);
         // }
-        gpio_toggle(GPIOA, GPIO8);
-        os_thread_sleep_us(500000);
+        // gpio_toggle(GPIOA, GPIO8);
+        os_thread_sleep_us(1000000);
+        // printf("my_thread\n");
     }
 }
 
@@ -96,8 +97,7 @@ extern void node_main(void *arg);
 
 void run_node_thread(void)
 {
-    int node_id = 42;
-    os_thread_create(&node_thread, node_main, node_stack, sizeof(node_stack), "UAVCAN Node", 2, &node_id);
+    os_thread_create(&node_thread, node_main, node_stack, sizeof(node_stack), "UAVCAN Node", 2, NULL);
 }
 
 
@@ -181,7 +181,7 @@ int main(void)
     delay(1000000);
 
     os_thread_create(&my_thread, my_thread_main, my_thread_stack, sizeof(my_thread_stack), "my thread", 3, NULL);
-    os_thread_create(&test, test_main, test_stack, sizeof(test_stack), "test", 2, NULL);
+    // os_thread_create(&test, test_main, test_stack, sizeof(test_stack), "test", 2, NULL);
 
     // init SCL (PB8), SDA (PB9)
     gpio_set_af(GPIOB, GPIO_AF4, GPIO8 | GPIO9);
