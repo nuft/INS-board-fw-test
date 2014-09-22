@@ -115,15 +115,22 @@ void cpp_node_main(void)
          */
         const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
 
+        if (spin_res < 0) {
+            std::printf("Spin failure: %i\n", spin_res);
+        }
+
         uavcan::protocol::debug::KeyValue kv_msg;  // Always zero initialized
         kv_msg.type = kv_msg.TYPE_FLOAT;
         kv_msg.binary_value.push_back(0x2A);
 
         kv_msg.key = "hello world";
 
-        if (spin_res < 0) {
-            std::printf("Spin failure: %i\n", spin_res);
+        const int pub_res = kv_pub.broadcast(kv_msg);
+        if (pub_res < 0)
+        {
+            std::printf("KV publication failure: %d\n", pub_res);
         }
+
         gpio_toggle(GPIOA, GPIO8);
 
     }
