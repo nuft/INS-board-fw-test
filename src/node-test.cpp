@@ -11,6 +11,8 @@
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/debug/KeyValue.hpp>
 
+#include <stdarg.h>
+
 #define NODE_ID 42
 #define CAN_BITRATE 1000000
 
@@ -45,12 +47,12 @@ void cpp_node_main(void)
     std::printf("can lowlevel init\n");
 
     int init = stm32_can_init_helper.init(CAN_BITRATE);
-    std::printf("can driver init\n");
 
     if (init != 0) {
         std::printf("can driver init error\n");
         while(1);
     }
+    std::printf("can driver init\n");
 
     /*
      * Setting up the node parameters
@@ -126,6 +128,20 @@ void cpp_node_main(void)
 
     }
 }
+
+/*
+int uavcan_stm32_log(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+
+    printf("stm32_can: ");
+    vprintf(fmt, ap);
+    printf("\n");
+
+    va_end(ap);
+}
+*/
 
 /*
 void uavcan_assert(const char *file, int line, bool cond)
