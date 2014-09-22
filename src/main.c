@@ -1,6 +1,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/cm3/scb.h>
@@ -10,9 +11,11 @@
 #include "uart.h"
 #include "sensors.h"
 #include "can.h"
+#include "ins-board.h"
 
 #include <os.h>
 #include <platform-abstraction/threading.h>
+#include <platform-abstraction/panic.h>
 
 
 void delay(unsigned int n)
@@ -128,6 +131,20 @@ void reboot_and_run_bootloader(void)
     scb_reset_system();
 }
 
+void debug_panic(const char *file, int line, const char *msg, ...)
+{
+    ERROR_LED_ON();
+
+    va_list ap;
+    va_start(ap, msg);
+
+    printf("PANIC (%s:%d): ", file, line);
+    vprintf(msg, ap);
+
+    va_end(ap);
+
+    while(1);
+}
 
 int main(void)
 {
@@ -146,6 +163,8 @@ int main(void)
     }
 
     rcc_clock_setup_hse_3v3(&hse_16mhz_3v3[CLOCK_3V3_168MHZ]);
+
+    panic = debug_panic;
 
     fpu_config();
 
