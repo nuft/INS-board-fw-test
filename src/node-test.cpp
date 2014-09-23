@@ -22,7 +22,6 @@ typedef uavcan::Node<16384> Node;
 
 uavcan::LazyConstructor<Node> node_;
 
-uavcan_stm32::CanInitHelper<> stm32_can_init_helper;
 
 Node& getNode()
 {
@@ -48,7 +47,7 @@ void cpp_node_main(void)
     can2_gpio_init();
     std::printf("can lowlevel init\n");
 
-    int init = stm32_can_init_helper.init(CAN_BITRATE);
+    int init = can.init(CAN_BITRATE);
 
     if (init != 0) {
         std::printf("can driver init error\n");
