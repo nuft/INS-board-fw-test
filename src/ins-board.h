@@ -1,6 +1,10 @@
 #ifndef INS_BOARD_H
 #define INS_BOARD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <libopencm3/stm32/gpio.h>
 
 #define STATUS_LED_ON() {gpio_set(GPIOB, GPIO14);}
@@ -19,5 +23,8 @@
 #define SD_LED_OFF() {gpio_clear(GPIOB, GPIO15);}
 #define SD_LED_TOGGLE() {gpio_toggle(GPIOB, GPIO15);}
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // INS_BOARD_H
