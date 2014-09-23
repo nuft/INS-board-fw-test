@@ -44,11 +44,13 @@ void can_monitor(void)
              CAN_BTR_TS1_12TQ,  // Time segment 1 time quanta width
              CAN_BTR_TS2_8TQ,   // Time segment 2 time quanta width
              2,                 // Prescaler
-             true,              // Loopback
-             false)) {          // Silent
+             false,             // Loopback
+             true)) {           // Silent
         uart_conn1_puts("can init failed\n");
         ERROR_LED_ON();
     }
+
+    uart_conn1_puts("can initialized\n");
 
     // All filter configuration must be done with CAN1!
     CAN_FMR(CAN1) &= ~(int32_t)0x3F00; // assign all filters to CAN2
@@ -61,11 +63,13 @@ void can_monitor(void)
         true    // enable
     ); // match any id
 
+
+    uart_conn1_puts("can filter initialized\n");
+
     while (1) {
-        STATUS_LED_ON();
         // wait for packet in fifio
         while((CAN_RF0R(CAN2) & CAN_RF0R_FMP0_MASK) == 0);
-        STATUS_LED_OFF();
+        STATUS_LED_TOGGLE();
 
         uint32_t id, fid;
         uint8_t data[9];
@@ -95,7 +99,19 @@ void can_monitor(void)
         uint32_t dl = data[4]<<0 | data[5]<<8 | data[6]<<16 | data[7]<<24;
         uint32_t dh = data[0]<<0 | data[1]<<8 | data[2]<<16 | data[3]<<24;
 
-        printf("id: %u, packet: %8x%8x, len %u, %s\n", id, dh, dl, len, data);
+        printf("can: id: 0x%x, packet: 0x%08x %08x, len %u, %s\n", id, dh, dl, len, data);
+
+        if (1) {
+            unsigned int dt, tt, sid, fi, lf, tid;
+            dt = (id >> 19) & 1023;
+            tt = (id >> 17) & 3;
+            sid = (id >> 10) & 127;
+            fi = (id >> 4) & 63;
+            lf = (id >> 3) & 1;
+            tid = id & 7;
+            printf("uavcan: data_t: %u, tarnsf_t: %u, src-id: %u, frame-ind: %u, last: %u, transf-id: %u\n",
+                dt, tt, sid, fi, lf, tid);
+        }
     }
 }
 

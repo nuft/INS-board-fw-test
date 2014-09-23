@@ -199,7 +199,7 @@ int main(void)
     gpio_set(GPIOC, GPIO14);
     delay(1000000);
 
-    os_thread_create(&my_thread, my_thread_main, my_thread_stack, sizeof(my_thread_stack), "my thread", 3, NULL);
+    // os_thread_create(&my_thread, my_thread_main, my_thread_stack, sizeof(my_thread_stack), "my thread", 3, NULL);
     // os_thread_create(&test, test_main, test_stack, sizeof(test_stack), "test", 2, NULL);
 
     // init SCL (PB8), SDA (PB9)
@@ -228,7 +228,9 @@ int main(void)
 
     // can_test();
 
-    os_run();
+    can_monitor();
+
+    // os_run();
 
     while (1) {
         // gpio_toggle(GPIOA, GPIO8);
