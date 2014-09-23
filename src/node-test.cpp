@@ -40,6 +40,11 @@ void can2_gpio_init(void)
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
 }
 
+void node_status_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeStatus>& msg)
+{
+    printf("NodeStatus sender-id: %d\n", msg.getSrcNodeID().get());
+}
+
 void cpp_node_main(void)
 {
     std::printf("Node Thread main\n");
@@ -96,6 +101,16 @@ void cpp_node_main(void)
     //     std::printf("error KeyValue subscriber init");
     //     while (1);
     // }
+
+    uavcan::Subscriber<uavcan::protocol::NodeStatus> ns_sub(node);
+
+    const int ns_sub_start_res = ns_sub.start(node_status_cb);
+
+    if (ns_sub_start_res < 0)
+    {
+        std::printf("error NodeStatus subscriber init");
+        while (1);
+    }
 
     /*
      * Informing other nodes that we're ready to work.
