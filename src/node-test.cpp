@@ -14,6 +14,7 @@
 #include <stdarg.h>
 
 #define NODE_ID 42
+#define NODE_NAME "node-test-1"
 #define CAN_BITRATE 1000000
 
 uavcan_stm32::CanInitHelper<128> can;
@@ -40,9 +41,45 @@ void can2_gpio_init(void)
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
 }
 
+void key_value_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::KeyValue>& msg)
+{
+    const uint8_t *m = &msg.key[0];
+    std::printf("KeyValue:%d: %s\n", msg.getSrcNodeID().get(), m);
+}
+
 void node_status_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeStatus>& msg)
 {
-    printf("NodeStatus sender-id: %d\n", msg.getSrcNodeID().get());
+    const uint8_t st = msg.status_code;
+    const char *st_name;
+    switch (st) {
+        case 0:
+            st_name = "STATUS_OK";
+            break;
+        case 1:
+            st_name = "STATUS_INITIALIZING";
+            break;
+        case 2:
+            st_name = "STATUS_WARNING";
+            break;
+        case 3:
+            st_name = "STATUS_CRITICAL";
+            break;
+        case 15:
+            st_name = "STATUS_OFFLINE";
+            break;
+        default:
+            st_name = "UNKNOWN_STATUS";
+            break;
+    }
+    std::printf("NodeStatus from %d: %u (%s)\n", msg.getSrcNodeID().get(), st, st_name);
+}
+
+void log_cub_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage>& msg)
+{
+    const uint8_t *s = &msg.source[0];
+    const uint8_t *m = &msg.text[0];
+    const uint8_t l = msg.level.value;
+    std::printf("LogMessage:%d: %s:%s, level: %d\n", msg.getSrcNodeID().get(), s, m, l);
 }
 
 void cpp_node_main(void)
@@ -66,7 +103,7 @@ void cpp_node_main(void)
     Node& node = getNode();
 
     node.setNodeID(NODE_ID);
-    node.setName("cvra.test-node");
+    node.setName(NODE_NAME);
 
     std::printf("Node init %u\n", node.getNodeID().get());
 
@@ -91,17 +128,18 @@ void cpp_node_main(void)
         while (1);
     }
 
-    // uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(node);
 
-    // const int kv_sub_start_res =
-    //     kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { printf("msg.key: %s\n", msg.key); });
+    uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(node);
 
-    // if (kv_sub_start_res < 0)
-    // {
-    //     std::printf("error KeyValue subscriber init");
-    //     while (1);
-    // }
+    const int kv_sub_start_res = kv_sub.start(key_value_cb);
 
+    if (kv_sub_start_res < 0)
+    {
+        std::printf("error KeyValue subscriber init");
+        while (1);
+    }
+
+    /* node status subscriber */
     uavcan::Subscriber<uavcan::protocol::NodeStatus> ns_sub(node);
 
     const int ns_sub_start_res = ns_sub.start(node_status_cb);
@@ -111,6 +149,20 @@ void cpp_node_main(void)
         std::printf("error NodeStatus subscriber init");
         while (1);
     }
+
+    /* log message subscriber */
+    uavcan::Subscriber<uavcan::protocol::debug::LogMessage> log_sub(node);
+
+    const int log_sub_start_res = log_sub.start(log_cub_cb);
+
+    if (log_sub_start_res < 0)
+    {
+        std::printf("error LogMessage subscriber init");
+        while (1);
+    }
+
+    /* logger */
+    node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
     /*
      * Informing other nodes that we're ready to work.
@@ -129,17 +181,15 @@ void cpp_node_main(void)
          * The method spin() may return earlier if an error occurs (e.g. driver failure).
          * All error codes are listed in the header uavcan/error.hpp.
          */
-        const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
+        int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
 
         if (spin_res < 0) {
             std::printf("Spin failure: %i\n", spin_res);
         }
 
         uavcan::protocol::debug::KeyValue kv_msg;  // Always zero initialized
-        kv_msg.type = kv_msg.TYPE_FLOAT;
-        kv_msg.binary_value.push_back(0x2A);
-
-        kv_msg.key = "hello world";
+        kv_msg.type = kv_msg.TYPE_STRING;
+        kv_msg.key = NODE_NAME;
 
         const int pub_res = kv_pub.broadcast(kv_msg);
         if (pub_res < 0)
@@ -147,8 +197,9 @@ void cpp_node_main(void)
             std::printf("KV publication failure: %d\n", pub_res);
         }
 
-        gpio_toggle(GPIOA, GPIO8);
+        node.logInfo("main", "Hello world!");
 
+        gpio_toggle(GPIOA, GPIO8);
     }
 }
 
