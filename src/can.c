@@ -95,7 +95,7 @@ void can_monitor(void)
         uint32_t dl = data[4]<<0 | data[5]<<8 | data[6]<<16 | data[7]<<24;
         uint32_t dh = data[0]<<0 | data[1]<<8 | data[2]<<16 | data[3]<<24;
 
-        printf("id: %u, packet: %8x%8x, len %u, %s\n", id, dh, dl, len, data);
+        printf("id: %u, packet: %8x%8x, len %u, %s\n", (unsigned int) id, (unsigned int) dh, (unsigned int) dl, (unsigned int) len, data);
     }
 }
 
