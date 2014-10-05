@@ -9,12 +9,19 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include <uavcan/protocol/NodeStatus.hpp>
-#include <uavcan/protocol/debug/KeyValue.hpp>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/global_time_sync_master.hpp>
 
-#include <stdarg.h>
+#define MASTER 1
 
+#if MASTER
 #define NODE_ID 42
-#define NODE_NAME "node-test-1"
+#define NODE_NAME "Master Node"
+#else
+#define NODE_ID 23
+#define NODE_NAME "Slave Node"
+#endif
+
 #define CAN_BITRATE 1000000
 
 uavcan_stm32::CanInitHelper<128> can;
@@ -39,12 +46,6 @@ void can2_gpio_init(void)
     gpio_clear(GPIOC, GPIO5);
     gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
     gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
-}
-
-void key_value_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::KeyValue>& msg)
-{
-    const uint8_t *m = &msg.key[0];
-    std::printf("KeyValue:%d: %s\n", msg.getSrcNodeID().get(), m);
 }
 
 void node_status_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeStatus>& msg)
@@ -74,14 +75,6 @@ void node_status_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeSt
     std::printf("NodeStatus from %d: %u (%s)\n", msg.getSrcNodeID().get(), st, st_name);
 }
 
-void log_cub_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage>& msg)
-{
-    const uint8_t *s = &msg.source[0];
-    const uint8_t *m = &msg.text[0];
-    const uint8_t l = msg.level.value;
-    std::printf("LogMessage:%d: %s:%s, level: %d\n", msg.getSrcNodeID().get(), s, m, l);
-}
-
 void cpp_node_main(void)
 {
     std::printf("Node Thread main\n");
@@ -90,26 +83,26 @@ void cpp_node_main(void)
     std::printf("can lowlevel init\n");
 
     int init = can.init(CAN_BITRATE);
-
     if (init != 0) {
         std::printf("can driver init error\n");
         while(1);
     }
     std::printf("can driver init\n");
 
-    /*
-     * Setting up the node parameters
-     */
+
     Node& node = getNode();
 
     node.setNodeID(NODE_ID);
     node.setName(NODE_NAME);
 
+    uavcan::UtcDuration adjustment;
+    uint64_t utc_time_init = 1234;
+    adjustment = uavcan::UtcTime::fromUSec(utc_time_init) - uavcan::UtcTime::fromUSec(0);
+    // adjustment.fromUSec(0);
+    node.getSystemClock().adjustUtc(adjustment);
+
     std::printf("Node init %u\n", node.getNodeID().get());
 
-    /*
-     * Initializing the UAVCAN node - this may take a while
-     */
     while (true) {
         int res = node.start();
 
@@ -121,89 +114,73 @@ void cpp_node_main(void)
         os_thread_sleep_us(1000);
     }
 
-    uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(node);
-    const int kv_pub_init_res = kv_pub.init();
-    if (kv_pub_init_res < 0) {
-        std::printf("error KeyValue publisher init");
-        while (1);
+#if MASTER
+    /* time sync master */
+    uavcan::GlobalTimeSyncMaster master(node);
+    const int master_init_res = master.init();
+    if (master_init_res < 0) {
+        std::printf("error TimeSyncMaster init\n");
+        while(1);
     }
-
-
-    uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(node);
-
-    const int kv_sub_start_res = kv_sub.start(key_value_cb);
-
-    if (kv_sub_start_res < 0)
-    {
-        std::printf("error KeyValue subscriber init");
-        while (1);
+#else
+    /* time sync slave */
+    uavcan::GlobalTimeSyncSlave slave(node);
+    const int slave_init_res = slave.start();
+    if (slave_init_res < 0) {
+        std::printf("error TimeSyncSlave init\n");
+        while(1);
     }
+#endif
 
     /* node status subscriber */
     uavcan::Subscriber<uavcan::protocol::NodeStatus> ns_sub(node);
-
     const int ns_sub_start_res = ns_sub.start(node_status_cb);
-
-    if (ns_sub_start_res < 0)
-    {
+    if (ns_sub_start_res < 0) {
         std::printf("error NodeStatus subscriber init");
         while (1);
     }
 
-    /* log message subscriber */
-    uavcan::Subscriber<uavcan::protocol::debug::LogMessage> log_sub(node);
-
-    const int log_sub_start_res = log_sub.start(log_cub_cb);
-
-    if (log_sub_start_res < 0)
-    {
-        std::printf("error LogMessage subscriber init");
-        while (1);
-    }
-
-    /* logger */
-    node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-    /*
-     * Informing other nodes that we're ready to work.
-     * Default status is INITIALIZING.
-     */
-    node.setStatusOk();
-
-    /*
-     * Main loop
-     */
     std::printf("UAVCAN node started\n");
 
+    node.setStatusOk();
+
     while (true) {
-        /*
-         * Spinning for 1 second.
-         * The method spin() may return earlier if an error occurs (e.g. driver failure).
-         * All error codes are listed in the header uavcan/error.hpp.
-         */
         int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
 
         if (spin_res < 0) {
             std::printf("Spin failure: %i\n", spin_res);
         }
 
-        uavcan::protocol::debug::KeyValue kv_msg;  // Always zero initialized
-        kv_msg.type = kv_msg.TYPE_STRING;
-        kv_msg.key = NODE_NAME;
-
-        const int pub_res = kv_pub.broadcast(kv_msg);
-        if (pub_res < 0)
-        {
-            std::printf("KV publication failure: %d\n", pub_res);
+#if MASTER
+        const int res = master.publish();
+        if (res < 0) {
+            std::printf("Time sync master transient failure: %d\n", res);
         }
 
-        node.logInfo("main", "Hello world!");
+        uavcan::MonotonicTime mono_time = node.getMonotonicTime();
+        uavcan::UtcTime utc_time = node.getUtcTime();
+        std::printf("Time: Monotonic: %llu   UTC: %llu\n",
+                    mono_time.toUSec(), utc_time.toUSec());
+#else
+        const bool active = slave.isActive();
+        const int master_node_id = slave.getMasterNodeID().get();
+        const long msec_since_last_adjustment = (node.getMonotonicTime() - slave.getLastAdjustmentTime()).toMSec();
+        std::printf("Time sync slave status:\n"
+                    "    Master Node ID: %d, Active: %d\n"
+                    "    Last adjust %ld ms ago, Monotonic: %llu   UTC: %llu\n\n",
+                    master_node_id, int(active), msec_since_last_adjustment,
+                    node.getMonotonicTime().toUSec(), node.getUtcTime().toUSec());
+
+        // std::printf("Time: Monotonic: %llu, UTC: %llu\n", node.getMonotonicTime().toUSec(), node.getUtcTime().toUSec());
+#endif
 
         gpio_toggle(GPIOA, GPIO8);
     }
 }
 
 /*
+#include <stdarg.h>
+
 int uavcan_stm32_log(const char *fmt, ...)
 {
     va_list ap;
